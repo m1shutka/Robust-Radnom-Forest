@@ -69,7 +69,9 @@ class RobustRandomForest:
             elif optimization == 'tukey':
                 forest_prediction = self.__weights_optimization_tukey(trees_predictions)
             elif optimization == 'huberV0':
-                forest_prediction = self.__weights_optimization2(trees_predictions)
+                forest_prediction = self.__weights_optimization_huber2(trees_predictions)
+            elif optimization == 'huber_test':
+                forest_prediction = self.__weights_optimization_huber3(trees_predictions)
             else:
                 forest_prediction = trees_predictions.mean(axis=0)
         else:
@@ -100,6 +102,34 @@ class RobustRandomForest:
 
     def __weights_optimization_huber(self, trees_predictions):
         
+        self.__training_responses = self.y
+        forest_prediction = trees_predictions.mean(axis=0)
+        
+        while True:
+
+            new_forest_prediction = forest_prediction.copy()
+
+            for j in range(trees_predictions.shape[1]):
+
+                upper = 0
+                under = 0
+                omega = np.ones(self.__training_responses.shape[0])/self.__training_responses.shape[0]
+
+                for i in range(self.__training_responses.shape[0]):
+                    upper += omega[i] * self.__training_responses[i] /np.sqrt(1 + ((new_forest_prediction[j] - self.__training_responses[i])/self.delta)**2)
+                    under += omega[i] /np.sqrt(1 + ((new_forest_prediction[j] - self.__training_responses[i])/self.delta)**2)
+                  
+                new_forest_prediction[j] = upper/under
+
+
+            #if np.sum((new_forest_prediction - forest_prediction) ** 2)/new_forest_prediction.shape[0] < 0.1:
+            if max(abs(new_forest_prediction - trees_predictions.mean(axis=0))) > self.delta:
+                return new_forest_prediction
+
+            forest_prediction = new_forest_prediction
+
+    def __weights_optimization_huber2(self, trees_predictions):
+        
         self.__training_responses = self.predict(self.X)
         forest_prediction = trees_predictions.mean(axis=0)
         
@@ -118,11 +148,11 @@ class RobustRandomForest:
                     under += omega[i] /np.sqrt(1 + ((new_forest_prediction[j] - self.__training_responses[i])/self.delta)**2)
                   
                 new_forest_prediction[j] = upper/under
-            
-            if np.sum((new_forest_prediction - forest_prediction) ** 2)/new_forest_prediction.shape[0] < 0.1:
-            #if 2 * max(self.__training_responses) > self.delta:
-                return new_forest_prediction
 
+            #if np.sum((new_forest_prediction - forest_prediction) ** 2)/new_forest_prediction.shape[0] < 0.1:
+            if max(abs(new_forest_prediction - trees_predictions.mean(axis=0))) > self.delta:
+                return new_forest_prediction
+            
             forest_prediction = new_forest_prediction
 
     def __weights_optimization_tukey(self, trees_predictions):
@@ -141,34 +171,29 @@ class RobustRandomForest:
                 omega = np.ones(self.__training_responses.shape[0])/self.__training_responses.shape[0]
 
                 for i in range(self.__training_responses.shape[0]):
-                    omega[i] = max(1 - ((new_forest_prediction[j] - self.__training_responses[i])/self.delta)**2, 0)
+                    omega[i] = omega[i] * max(1 - ((new_forest_prediction[j] - self.__training_responses[i])/self.delta)**2, 0)
                     upper += omega[i] * self.__training_responses[i] 
                     under += omega[i] 
 
                 if under != 0:
                     new_forest_prediction[j] = upper/under
             
-            if np.sum((new_forest_prediction - forest_prediction) ** 2)/new_forest_prediction.shape[0] < 0.000001:
-            #if 2 * max(self.__training_responses) > self.delta:
+            #if np.sum((new_forest_prediction - forest_prediction) ** 2)/new_forest_prediction.shape[0] < 0.000001:
+            if max(abs(new_forest_prediction - trees_predictions.mean(axis=0))) > self.delta:
                 return new_forest_prediction
 
             forest_prediction = new_forest_prediction
 
 
-    def __weights_optimization2(self, trees_predictions):
+    def __weights_optimization_huber3(self, trees_predictions):
 
         self.__training_responses = self.predict(self.X)
         forest_prediction = trees_predictions.mean(axis=0)
 
         while True: 
-
-            print(f'next itaration...........')
             new_forest_prediction = forest_prediction.copy()
-            #print(new_forest_prediction)
-            omega = np.array([np.ones(self.__training_responses.shape[0])/self.__training_responses.shape[0] for _ in range(new_forest_prediction.shape[0])]).T
 
-            #print(omega)
-            print(omega.shape)
+            omega = np.array([np.ones(self.__training_responses.shape[0])/self.__training_responses.shape[0] for _ in range(new_forest_prediction.shape[0])]).T
 
             for j in range(new_forest_prediction.shape[0]):
                 for i in range(self.__training_responses.shape[0]):
