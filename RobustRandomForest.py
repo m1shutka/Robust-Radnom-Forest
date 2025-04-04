@@ -3,6 +3,11 @@ import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from random import randint
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MaxAbsScaler
+import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 
 class RobustRandomForest:
@@ -156,11 +161,12 @@ class RobustRandomForest:
             forest_prediction = new_forest_prediction
 
     def __weights_optimization_tukey(self, trees_predictions):
-        
+
+        #self.__training_responses = self.y
         self.__training_responses = self.predict(self.X)
         forest_prediction = trees_predictions.mean(axis=0)
-        
-        while True:
+        i = 0
+        while True and i < 10:
 
             new_forest_prediction = forest_prediction.copy()
 
@@ -181,8 +187,11 @@ class RobustRandomForest:
             #if np.sum((new_forest_prediction - forest_prediction) ** 2)/new_forest_prediction.shape[0] < 0.000001:
             if max(abs(new_forest_prediction - trees_predictions.mean(axis=0))) > self.delta:
                 return new_forest_prediction
-
+            
+            i += 1
             forest_prediction = new_forest_prediction
+
+        return forest_prediction
 
 
     def __weights_optimization_huber3(self, trees_predictions):
@@ -215,3 +224,91 @@ class RobustRandomForest:
                 return new_forest_prediction
 
             forest_prediction = new_forest_prediction
+
+
+class Distribution():
+
+    def __init__(self, alfa: float = 0.95, ro1: float = 0.05, ro2: float = 0.5, _func = None):
+
+        self.alfa = alfa
+        self.ro1 = ro1
+        self.ro2 = ro2
+
+        if _func != None:
+            self.func = _func
+        else:
+            self.func = self.__default_func
+
+        return
+
+
+    def distribution(self, borders: list[float] = [-1, 1], N: int = 100, random_state: int = 0):
+
+        X = np.linspace(borders[0], borders[1], N)
+        y = self.func(X)
+
+        X_train, X_test, Y_train, Y_test = train_test_split(X, y, random_state=random_state)
+
+        X_train = pd.DataFrame(data = {'X':X_train})
+        X_test = pd.DataFrame({'X':X_test})
+
+        Y_train = MaxAbsScaler().fit_transform(Y_train.reshape(-1, 1)).flatten()
+        Y_train = pd.Series(Y_train)
+
+        Y_test = MaxAbsScaler().fit_transform(Y_test.reshape(-1, 1)).flatten()
+        Y_test = pd.Series(Y_test)
+
+        c = np.sqrt(sum((Y_train - np.mean(Y_train))**2) / Y_train.shape[0])
+        self.sigma1 = self.ro1 * c
+        self.sigma2 = self.ro2
+
+        for i in range(Y_train.shape[0]):
+            if np.random.uniform(0, 1) < self.alfa:
+                Y_train[i] += np.random.normal(0, self.sigma1)
+            else:
+                Y_train[i] += np.random.normal(0, self.sigma2)
+
+        return X_train, X_test, Y_train, Y_test
+
+    def __default_func(self, X):
+        return X**2
+    
+    def __default_func2(self, X):
+        return X*np.sin(X)
+    
+    def __default_func3(self, X):
+        return np.sin(X)
+
+
+"""
+print('start')
+
+dist = Distribution(_func=lambda x: x * np.sin(x))
+#dist = Distribution(ro1=0.1)
+X_train, X_test, Y_train, Y_test = dist.distribution([-6, 6], 500)
+print(dist.sigma1)
+
+plt.title(f'Тренировочные и тестовые данные')
+plt.scatter(X_train, Y_train, color='b', label='train')
+plt.scatter(X_test, Y_test, color='g', label='test')
+plt.legend(fontsize=14)
+plt.show()
+
+sk_rf = RandomForestRegressor(n_jobs=-1)
+sk_rf.fit(X_train, Y_train)
+sk_rf_pred = sk_rf.predict(X_test)
+print(f'MAE sk_rf: {mean_absolute_error(sk_rf_pred, Y_test)}')
+print(f'MSE sk_rf: {mean_squared_error(sk_rf_pred, Y_test)}')
+
+huber_rrf = RobustRandomForest(n_jobs=-1, regression=True, delta=0.0001)
+huber_rrf.fit(X_train, Y_train)
+huber_rrf_pred = huber_rrf.predict(X_test, optimization='huber')
+print(f'MAE huber_rrf: {mean_absolute_error(huber_rrf_pred, Y_test)}')
+print(f'MSE huber_rrf: {mean_squared_error(huber_rrf_pred, Y_test)}')
+
+tukey_rrf = RobustRandomForest(n_jobs=-1, regression=True, delta=0.0001)
+tukey_rrf.fit(X_train, Y_train)
+tukey_rrf_pred = tukey_rrf.predict(X_test, optimization='tukey')
+print(f'MAE tukey_rrf: {mean_absolute_error(tukey_rrf_pred, Y_test)}')
+print(f'MSE tukey_rrf: {mean_squared_error(tukey_rrf_pred, Y_test)}')
+"""
