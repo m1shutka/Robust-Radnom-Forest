@@ -3,12 +3,8 @@ import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from random import randint
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MaxAbsScaler
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-import multiprocessing as mp
-import time
+from distribution import Distribution
 
 
 class RobustRandomForest:
@@ -327,80 +323,27 @@ class RobustRandomForest:
             forest_prediction = new_forest_prediction
 
         return forest_prediction
-
-
-class Distribution():
-
-    def __init__(self, alfa: float = 0.95, ro1: float = 0.05, ro2: float = 0.5, _func = None):
-
-        self.alfa = alfa
-        self.ro1 = ro1
-        self.ro2 = ro2
-
-        if _func != None:
-            self.func = _func
-        else:
-            self.func = self.__default_func
-
-        return
-
-
-    def distribution(self, borders: list[float] = [-1, 1], N: int = 100, random_state: int = 0):
-
-        X = np.linspace(borders[0], borders[1], N)
-        y = self.func(X)
-
-        X_train, X_test, Y_train, Y_test = train_test_split(X, y, random_state=random_state)
-
-        X_train = pd.DataFrame(data = {'X':X_train})
-        X_test = pd.DataFrame({'X':X_test})
-
-        Y_train = MaxAbsScaler().fit_transform(Y_train.reshape(-1, 1)).flatten()
-        Y_train = pd.Series(Y_train)
-
-        Y_test = MaxAbsScaler().fit_transform(Y_test.reshape(-1, 1)).flatten()
-        Y_test = pd.Series(Y_test)
-
-        c = np.sqrt(sum((Y_train - np.mean(Y_train))**2) / Y_train.shape[0])
-        self.sigma1 = self.ro1 * c
-        self.sigma2 = self.ro2
-
-        for i in range(Y_train.shape[0]):
-            if np.random.uniform(0, 1) < self.alfa:
-                Y_train[i] += np.random.normal(0, self.sigma1)
-            else:
-                Y_train[i] += np.random.normal(0, self.sigma2)
-
-        return X_train, X_test, Y_train, Y_test
-
-    def __default_func(self, X):
-        return X**2
+    
 
 if __name__ == '__main__':
 
     dist = Distribution(ro1=0.1, ro2=1.0, _func=lambda x: x * np.sin(x))
     X_train, X_test, Y_train, Y_test = dist.distribution([-6, 6], 500)
 
-    start_time = time.time()
     huber_rrf = RobustRandomForest(n_jobs=-1, regression=True, robustness='huber', delta=0.0001)
     huber_rrf.fit(X_train, Y_train)
     huber_rrf_pred = huber_rrf.predict(X_test)
     print(f'MAE huber_rrf: {mean_absolute_error(huber_rrf_pred, Y_test)}')
     print(f'MSE huber_rrf: {mean_squared_error(huber_rrf_pred, Y_test)}')
-    print(f'Elapsed time: {time.time() - start_time}\n')
 
-    start_time = time.time()
     lowess_rrf = RobustRandomForest(n_jobs=-1, regression=True, robustness='lowess')
     lowess_rrf.fit(X_train, Y_train, alpha=20)
     lowess_rrf_pred = lowess_rrf.predict(X_test)
     print(f'MAE lowess_rrf: {mean_absolute_error(lowess_rrf_pred, Y_test)}')
     print(f'MSE lowess_rrf: {mean_squared_error(lowess_rrf_pred, Y_test)}')
-    print(f'Elapsed time: {time.time() - start_time}\n')
 
-    start_time = time.time()
     quantile_rrf = RobustRandomForest(n_jobs=-1, regression=True, robustness='quantile')
     quantile_rrf.fit(X_train, Y_train)
     quantile_rrf_pred = quantile_rrf.predict(X_test)
     print(f'MAE quantile_rrf: {mean_absolute_error(quantile_rrf_pred, Y_test)}')
     print(f'MSE quantile_rrf: {mean_squared_error(quantile_rrf_pred, Y_test)}')
-    print(f'Elapsed time: {time.time() - start_time}')
