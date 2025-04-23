@@ -5,11 +5,10 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from random import randint
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MaxAbsScaler
-import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 import multiprocessing as mp
-import threading
+import time
 
 
 class RobustRandomForest:
@@ -106,9 +105,11 @@ class RobustRandomForest:
         """Вычисление oob весов Сучайного леса"""
 
         n = X_train.shape[0]
-        oob_weights = np.zeros((n, n))  # oob_weights[i, j] — вес i для j
+        #oob_weights = np.zeros((n, n))  # oob_weights[i, j] — вес i для j
 
         def compute(j):
+
+            oob_weights = np.zeros((n, n))
 
             # Индексы деревьев, где j не участвовал (OOB)
             tree_indices = [t for t in range(self.n_estimators) if j not in self.estimators_samples_[t]]
@@ -131,15 +132,19 @@ class RobustRandomForest:
                 numerator = bootstrap_weights * in_leaf
                 denominator = np.sum(numerator)
                 if denominator > 0:
-                    oob_weights[:, j] += numerator / denominator
+                    oob_weights[:, j] = oob_weights[:, j] + (numerator / denominator)
             
             # Усреднение по всем деревьям в T_j
             oob_weights[:, j] /= len(tree_indices)
 
-            return
+            return oob_weights
         
         #Параллельное вычисление весов
-        Parallel(n_jobs=self.n_jobs, require='sharedmem')(delayed(compute)(j) for j in range(n))
+        self.__oob_weights = Parallel(n_jobs=self.n_jobs)(delayed(compute)(j) for j in range(n))
+
+        oob_weights = self.__oob_weights[0]
+        for i in range(1, len(self.__oob_weights)):
+            oob_weights += self.__oob_weights[i]
         
         return oob_weights
 
@@ -373,25 +378,29 @@ class Distribution():
 
 if __name__ == '__main__':
 
-    print('start')
-
     dist = Distribution(ro1=0.1, ro2=1.0, _func=lambda x: x * np.sin(x))
     X_train, X_test, Y_train, Y_test = dist.distribution([-6, 6], 500)
 
+    start_time = time.time()
     huber_rrf = RobustRandomForest(n_jobs=-1, regression=True, robustness='huber', delta=0.0001)
     huber_rrf.fit(X_train, Y_train)
     huber_rrf_pred = huber_rrf.predict(X_test)
     print(f'MAE huber_rrf: {mean_absolute_error(huber_rrf_pred, Y_test)}')
-    print(f'MSE huber_rrf: {mean_squared_error(huber_rrf_pred, Y_test)}\n')
+    print(f'MSE huber_rrf: {mean_squared_error(huber_rrf_pred, Y_test)}')
+    print(f'Elapsed time: {time.time() - start_time}\n')
 
+    start_time = time.time()
     lowess_rrf = RobustRandomForest(n_jobs=-1, regression=True, robustness='lowess')
     lowess_rrf.fit(X_train, Y_train, alpha=20)
     lowess_rrf_pred = lowess_rrf.predict(X_test)
     print(f'MAE lowess_rrf: {mean_absolute_error(lowess_rrf_pred, Y_test)}')
-    print(f'MSE lowess_rrf: {mean_squared_error(lowess_rrf_pred, Y_test)}\n')
+    print(f'MSE lowess_rrf: {mean_squared_error(lowess_rrf_pred, Y_test)}')
+    print(f'Elapsed time: {time.time() - start_time}\n')
 
+    start_time = time.time()
     quantile_rrf = RobustRandomForest(n_jobs=-1, regression=True, robustness='quantile')
     quantile_rrf.fit(X_train, Y_train)
     quantile_rrf_pred = quantile_rrf.predict(X_test)
     print(f'MAE quantile_rrf: {mean_absolute_error(quantile_rrf_pred, Y_test)}')
     print(f'MSE quantile_rrf: {mean_squared_error(quantile_rrf_pred, Y_test)}')
+    print(f'Elapsed time: {time.time() - start_time}')
