@@ -5,6 +5,8 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from random import randint
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from distribution import Distribution
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MaxAbsScaler
 
 
 class RobustRandomForest:
@@ -60,8 +62,8 @@ class RobustRandomForest:
             b_t = np.bincount(bootstrap_sample, minlength=n_train)
             
             # Терминальные узлы для нового и обучающего данных
-            leaf_new = tree[0].apply(X_new)
-            leaf_train = tree[0].apply(X_train)
+            leaf_new = tree[0].apply(X_new[tree[0].feature_names_in_])
+            leaf_train = tree[0].apply(X_train[tree[0].feature_names_in_])
 
             for i_new in range(n_new):
                 mask = (leaf_train == leaf_new[i_new])
@@ -116,10 +118,10 @@ class RobustRandomForest:
             for t in tree_indices:
 
                 # Получение терминального узла для примера j в дереве t
-                leaf_id = self.estimators_[t][0].apply(X_train.iloc[j:j + 1])[0]
+                leaf_id = self.estimators_[t][0].apply(X_train.iloc[j:j + 1][self.estimators_[t][0].feature_names_in_])[0]
 
                 # Индексы примеров в том же узле
-                in_leaf = (self.estimators_[t][0].apply(X_train.iloc[j:j + 1]) == leaf_id).flatten()
+                in_leaf = (self.estimators_[t][0].apply(X_train.iloc[j:j + 1][self.estimators_[t][0].feature_names_in_]) == leaf_id).flatten()
 
                 # Бутстрап-веса для дерева t
                 bootstrap_weights = np.bincount(self.estimators_samples_[t], minlength=n)
