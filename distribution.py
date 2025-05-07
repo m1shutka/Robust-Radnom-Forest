@@ -1,4 +1,4 @@
-from sklearn.preprocessing import MaxAbsScaler
+from sklearn.preprocessing import MaxAbsScaler, StandardScaler
 import numpy as np
 from sklearn.model_selection import train_test_split
 import pandas as pd
