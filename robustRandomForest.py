@@ -485,18 +485,31 @@ class RobustRandomForest:
     
 
 if __name__ == '__main__':
+    import time
 
     dist = Distribution(ro1=0.1, ro2=1.0, _func=lambda x: x * np.sin(x))
-    X_train, X_test, Y_train, Y_test = dist.distribution([-6, 6], 500)
+    X_train, X_test, Y_train, Y_test = dist.distribution([-6, 6], 640)
 
+    start_time = time.time()
     huber_rrf = RobustRandomForest(n_jobs=-1, regression=True, robustness='huber', delta=0.0001)
     huber_rrf.fit(X_train, Y_train)
     huber_rrf_pred = huber_rrf.predict(X_test)
+    print(f"Huber time = {time.time()-start_time}")
 
+    start_time = time.time()
     lowess_rrf = RobustRandomForest(n_jobs=-1, regression=True, robustness='lowess')
     lowess_rrf.fit(X_train, Y_train, alpha=20)
     lowess_rrf_pred = lowess_rrf.predict(X_test)
+    print(f"Lowess Joblib time = {time.time()-start_time}")
 
+    start_time = time.time()
+    lowess_rrf = RobustRandomForest(n_jobs=1, regression=True, robustness='lowess')
+    lowess_rrf.fit(X_train, Y_train, alpha=20)
+    lowess_rrf_pred = lowess_rrf.predict(X_test)
+    print(f"Lowess simple time = {time.time()-start_time}")
+
+    start_time = time.time()
     quantile_rrf = RobustRandomForest(n_jobs=-1, regression=True, robustness='quantile')
     quantile_rrf.fit(X_train, Y_train)
     quantile_rrf_pred = quantile_rrf.predict(X_test)
+    print(f"quantile time = {time.time()-start_time}")
