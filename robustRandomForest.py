@@ -8,9 +8,11 @@ from distribution import Distribution
 class RobustRandomForest:
 
     """
+    Назначение:
+    -------------
     Класс, реализующий алгоритм устойчивого случайного леса
 
-    Атрибуты
+    Атрибуты:
     -------------
     estimators : list[(base_tree_class, pd.columns)], по умолчанию = []
         множество деревьев ансамбля
@@ -31,8 +33,12 @@ class RobustRandomForest:
     def __init__(self, regression=False, n_estimators=100, max_depth=None, max_features=1.0, n_jobs=-1, 
                  random_state=randint(0, 10000000), ccp_alpha=0.0, robustness=None, delta = 0.001):
         """
+        Назначение:
+        ---------------
         Инициализация класса устойчивого случайного леса
-
+        
+        Входные данные:
+        ---------------
         :param regression: bool, по умолчанию = Flase.
             флаг о регрессии.
         :param n_estimators: int, по умолчанию = 100.
@@ -51,6 +57,10 @@ class RobustRandomForest:
             используемый алгоритм устойчивости.
         :param delta: float, по умолчанию 0.001.
             параметр сходимости.
+
+        Выходные данные:
+        ---------------  
+        :return: None
         """
         self.regression = regression
         self.n_estimators = n_estimators
@@ -68,14 +78,20 @@ class RobustRandomForest:
  
     def _rsm_bootstrapping(self, X, y):
         """
+        Назначение:
+        ---------------
         Построение бутстрэпированной выборки
 
+        Входные данные:
+        ---------------
         :param X: pd.DataFrame
             набор наблюдений, на котором будет производиться обучение алгоритма
 
         :param y: pd.Series
             набор целевых значений, на котором будет производиться обучение алгоритма
 
+        Выходные данные:
+        --------------- 
         :return X_b, y_b: pd.DataFrame, pd.Series
             бутстрэпированная выборка X_b и целевая переменная y_b
         """
@@ -97,14 +113,20 @@ class RobustRandomForest:
 
     def __compute_rf_weights(self, X_train, X_new):
         """
+        Назначение:
+        ---------------
         Вычисление весов Случайного леса
 
+        Входные данные:
+        ---------------
         :param X_train: pd.DataFrame
             набор наблюдений, на котором производилось обучение алгоритма
 
         :param X_new: pd.DataFrame
             набор наблюдений, на котором будет производиться прогноз алгоритма
 
+        Выходные данные:
+        --------------- 
         :return weights: np.ndarray, 
             веса случайного леса
         """
@@ -143,14 +165,20 @@ class RobustRandomForest:
 
     def _train_tree(self, X, y):
         """
+        Назначение
+        ---------------
         Обучение дерева решений
 
+        Входные данные:
+        ---------------
         :param X: pd.DataFrame
             набор наблюдений, на котором будет производиться обучение одного дерева
 
         :param y: pd.Series
             набор целевых значений, на котором будет производиться обучение одного дерева
 
+        Выходные данные:
+        --------------- 
         :return tree, columns: tree_base_class, pd.columns 
             Объект класса обученного дерева решений, набор призаков, участвующих в обучении
         """
@@ -169,11 +197,17 @@ class RobustRandomForest:
     
     def __compute_oob_weights(self, X_train):
         """
+        Назначение:
+        ---------------
         Вычисление oob весов Сучайного леса
 
+        Входные данные:
+        ---------------
         :param X_train: pd.DataFrame
             набор наблюдений, на котором производилось обучение алгоритма
 
+        Выходные данные:
+        --------------- 
         :return oob_weights: np.ndarray, 
             OOB веса случайного леса
         """
@@ -223,11 +257,17 @@ class RobustRandomForest:
 
     def __tukey_array(self, arr):
         """
+        Назначение:
+        ---------------
         Построение массива проебразования Тьюки
         
+        Входные данные:
+        ---------------
         :param arr: np.ndarray
             массив, к которому применяется функция Tьюки
 
+        Выходные данные:
+        --------------- 
         :return tukey_arr: np.ndarray, 
             преобразованный массив 
         """
@@ -240,8 +280,12 @@ class RobustRandomForest:
 
     def __oob_lambda(self, X_tarin, y_train, alpha):
         """
+        Назначение:
+        ---------------
         Вычисление lambda для прогноза при robustness='lowess'
         
+        Входные данные:
+        ---------------
         :param X_tarin: pd.DataFrame
             набор наблюдений, на котором производилось обучение леса 
 
@@ -251,6 +295,8 @@ class RobustRandomForest:
         :param alpha: float
             параметр сходимости
 
+        Выходные данные:
+        --------------- 
         :return lambd: np.ndarray, 
             массив lambda
         """
@@ -290,8 +336,12 @@ class RobustRandomForest:
 
     def fit(self, X_train, y_train, alpha = 10):
         """
+        Назначение:
+        ---------------
         Обучение модели Robust Random Forest
         
+        Входные данные:
+        ---------------
         :param X_tarin: pd.DataFrame
             набор наблюдений, на котором будет производиться обучение леса 
 
@@ -301,6 +351,8 @@ class RobustRandomForest:
         :param alpha: float
             параметр сходимости
 
+        Выходные данные:
+        --------------- 
         :return: None
         """
 
@@ -322,11 +374,17 @@ class RobustRandomForest:
 
     def predict(self, X_test):
         """
+        Назначение:
+        ---------------
         Прогноз модели Robust Random Forest
         
+        Входные данные:
+        ---------------
         :param X_test: pd.DataFrame
             набор наблюдений, на котором будет производиться прогноз леса 
 
+        Выходные данные:
+        --------------- 
         :return forest_prediction: np.ndarray
             прогноз алгоритма
         """
@@ -360,12 +418,17 @@ class RobustRandomForest:
 
 
     def __feature_importances(self):
-
         """
+        Назначение:
+        ---------------
         Вычисление значимости признаков
         
+        Входные данные:
+        ---------------
         :param: None
 
+        Выходные данные:
+        --------------- 
         :return: None
         """
 
@@ -393,11 +456,17 @@ class RobustRandomForest:
 
     def __weights_optimization_huber(self, trees_predictions):
         """
+        Назначение:
+        ---------------
         Вычисление прогноза при помощи псевдохуберовских потерь
         
+        Входные данные:
+        ---------------
         :param trees_predictions: pd.DataFrame
             прогнозы деревьев 
 
+        Выходные данные:
+        --------------- 
         :return forest_prediction: np.ndarray
             скорректированный прогноз алгоритма
         """
@@ -439,11 +508,17 @@ class RobustRandomForest:
 
     def __weights_optimization_tukey(self, trees_predictions):
         """
+        Назначение:
+        ---------------
         Вычисление прогноза при помощи потерь Тьюки
         
+        Входные данные:
+        ---------------
         :param trees_predictions: pd.DataFrame
             прогнозы деревьев 
 
+        Выходные данные:
+        --------------- 
         :return forest_prediction: np.ndarray
             скорректированный прогноз алгоритма
         """

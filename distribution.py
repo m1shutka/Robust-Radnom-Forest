@@ -5,7 +5,47 @@ import pandas as pd
 
 class Distribution():
 
+    """
+    Назначение:
+    -------------
+    Класс, моделирующий зашумленую выборку
+
+    Атрибуты:
+    -------------
+    alpha : float, по умолчанию = 0.95
+        парметр смеси.
+
+    ro1 :  float, по умолчанию = 0.05
+        мера шума. 
+
+    ro2 : float, по умолчанию = 0.5
+        мера выбросов.
+
+    _func : function, по умолчанию = None
+        функция f(u).
+    """
+
     def __init__(self, alpha: float = 0.95, ro1: float = 0.05, ro2: float = 0.5, _func = None):
+        """
+        Назначение:
+        ---------------
+        Инициализация класса генератора выборки
+        
+        Входные данные:
+        ---------------
+        :param alpha : float, по умолчанию = 0.95
+            парметр смеси.
+        :param ro1 :  float, по умолчанию = 0.05
+            мера шума.
+        :param ro2 : float, по умолчанию = 0.5
+            мера выбросов.
+        :param _func : function, по умолчанию = None
+            функция f(u).
+
+        Выходные данные:
+        ---------------  
+        :return: None
+        """
 
         self.alpha = alpha
         self.ro1 = ro1
@@ -20,6 +60,25 @@ class Distribution():
 
 
     def distribution(self, borders: list[float] = [-1, 1], N: int = 100, random_state: int = np.random.randint(99999999)):
+        """
+        Назначение:
+        ---------------
+        Сощдание выборки с выбросами
+        
+        Входные данные:
+        ---------------
+        :param borders : list[float], по умолчанию = [-1, 1]
+            границы обасти определения f(u).
+        :param N :  int, по умолчанию = 100
+            количество наблюдений f(u).
+        :param random_state : int, по умолчанию = None
+            случайное состояние генератора.
+
+        Выходные данные:
+        ---------------  
+        :return: X_train, X_test, Y_train, Y_test: pd.DataFrame, pd.DataFrame, pd.Series, pd.Series
+            обучающие и тестовые компоненты выборки.
+        """
 
         X = np.linspace(borders[0], borders[1], N)
         y = self.func(X)
